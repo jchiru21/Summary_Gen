@@ -1,0 +1,36 @@
+name: CI Build + fetch HF checkpoint
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install huggingface_hub (minimal)
+        run: pip install huggingface_hub
+
+      - name: Download HF checkpoint(s) into repo
+        run: |
+          python - <<PY
+          # downloads latest reranker checkpoint into checkpoints_clean/
+          from tripletgen.hf_utils import ensure_latest_checkpoint
+          import os
+          print("HF_TOKEN present:", bool(os.environ.get("HF_TOKEN")))
+          ensure_latest_checkpoint(out_dir="checkpoints_clean", token=os.environ.get("HF_TOKEN"))
+          print("Downloaded checkpoint(s) into checkpoints_clean/")
+          PY
+
+      - name: Build Docker image
+        run: docker build -t tripletgen-ui:ci .
