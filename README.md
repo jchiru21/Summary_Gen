@@ -1,3 +1,5 @@
+# Summary_Gen
+
 
 # 📦 Installation
 
@@ -89,7 +91,6 @@ This repo ignores large `.pt` files (`checkpoints_clean/`) using `.gitignore`.
 * To use your fine-tuned reranker, place `reranker_ckpt_best_*.pt` in `./checkpoints_clean/`.
 * Otherwise, the app falls back to the base `roberta-base`.
 
-For sharing models, consider Hugging Face Hub or Google Drive instead of GitHub (file size limits).
 
 ---
 
@@ -104,4 +105,3 @@ PRs welcome! Open an issue to discuss major changes.
 MIT License. Free for personal and commercial use.
 
 
-# Summary_Gen
