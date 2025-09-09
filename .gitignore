@@ -1,0 +1,19 @@
+# Large model artifacts
+checkpoints_clean/*
+*.pt
+*.pth
+*.bin
+
+# Python
+__pycache__/
+*.pyc
+.env
+.env.*
+.DS_Store
+
+# Output and logs
+outputs/
+*.log
+
+# VSCode
+.vscode/

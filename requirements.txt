@@ -1,0 +1,6 @@
+flask>=2.0
+transformers>=4.56.0,<5
+torch>=1.13
+huggingface_hub>=0.14
+rouge-score==0.1.2
+huggingface_hub

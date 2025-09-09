@@ -1,0 +1,10 @@
+# training / evaluation / benchmarking extras / Optional dependencies unless training from source
+datasets>=2.19.0,<3
+accelerate>=0.20.0
+sentencepiece
+bert-score
+tqdm
+evaluate
+sacremoses
+humanize
+scikit-learn
