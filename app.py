@@ -1,4 +1,4 @@
-# app.py — corrected and hardened
+# app.py
 from flask import Flask, render_template, request, jsonify
 from tripletgen.summarize_and_qa import summarize_and_qa, load_models
 import threading
