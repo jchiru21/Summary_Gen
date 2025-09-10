@@ -1,7 +1,3 @@
-"""
-Helpers to download and list checkpoint artifacts from Hugging Face model repo.
-Keeps code clean: checkpoints live on HF, not in GitHub.
-"""
 import os
 import re
 from pathlib import Path
