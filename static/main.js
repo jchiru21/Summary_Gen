@@ -1,4 +1,4 @@
-/* static/main.js - vanilla JS; small, dependency free */
+/* static/main.js
 async function postJSON(url, data) {
   const res = await fetch(url, {
     method: "POST",
