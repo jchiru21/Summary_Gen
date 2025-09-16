@@ -6,7 +6,7 @@
 ### Clone the repo:
 
 ```bash
-git clone https://github.com/<YOUR_USERNAME>/tripletgen-flask.git
+git clone https://github.com/jchiru21/Summary_Gen.git
 cd tripletgen-flask
 ```
 
