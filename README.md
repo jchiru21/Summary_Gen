@@ -7,7 +7,7 @@
 
 ```bash
 git clone https://github.com/jchiru21/Summary_Gen.git
-cd tripletgen-flask
+cd Summary_Gen
 ```
 
 ### Create a virtual environment:
