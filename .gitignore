@@ -1,19 +1,30 @@
-# Large model artifacts
-checkpoints_clean/*
-*.pt
-*.pth
-*.bin
-
+@"
 # Python
 __pycache__/
 *.pyc
-.env
-.env.*
+*.pyo
+*.pyd
+env/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb_checkpoints
+
+# Data & models
+data/
+models/
+*.ckpt
+*.h5
+*.pth
+*.pt
+
+# OS
 .DS_Store
-
-# Output and logs
-outputs/
-*.log
-
-# VSCode
-.vscode/
+Thumbs.db
+"@ | Out-File -FilePath "C:\Users\ACER\Summary_Gen\.gitignore" -Encoding utf8
+# Virtual env
+venv/
+VENV/
+.venv/
