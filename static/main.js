@@ -1,115 +1,189 @@
-/* static/main.js
-async function postJSON(url, data) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
-
-function el(tag, attrs={}, children=[]) {
-  const e = document.createElement(tag);
-  for(const k in attrs) {
-    if(k === "class") e.className = attrs[k];
-    else if(k === "text") e.textContent = attrs[k];
-    else e.setAttribute(k, attrs[k]);
-  }
-  children.forEach(c => e.appendChild(c));
-  return e;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-  const runBtn = document.getElementById("run");
+  const articleEl = document.getElementById("article");
+  const questionEl = document.getElementById("question");
+  const slider = document.getElementById("summarySlider");
+  const tokenCount = document.getElementById("tokenCount");
+  const rightTokenCount = document.getElementById("rightTokenCount");
+  const sentCount = document.getElementById("sentCount");
+  const wordCount = document.getElementById("wordCount");
+  const summarizeBtn = document.getElementById("summarize");
+  const summarizeSpinner = document.getElementById("summarizeSpinner");
+  const resultArea = document.getElementById("resultArea");
+  const statusEl = document.getElementById("status");
   const clearBtn = document.getElementById("clear");
-  const articleInp = document.getElementById("article");
-  const questionInp = document.getElementById("question");
-  const resBox = document.getElementById("res");
-  const status = document.getElementById("status");
-  const preset = document.getElementById("preset");
+  const pasteBtn = document.getElementById("pasteBtn");
+  const fileInput = document.getElementById("fileInput");
+  const presetMarkers = document.querySelectorAll(".preset-marker");
 
-  clearBtn.addEventListener("click", () => {
-    articleInp.value = "";
-    questionInp.value = "";
-    resBox.innerHTML = '<div class="placeholder">No result yet. Click <strong>Summarize</strong> to run inference.</div>';
-    status.className = "status idle";
-    status.textContent = "Idle";
+  const PRESETS = [
+    { name: "Concise", val: 20, range: [0, 35] },
+    { name: "Medium", val: 55, range: [36, 74] },
+    { name: "Detailed", val: 90, range: [75, 100] }
+  ];
+
+  function sliderToParams(val) {
+    const maxTokens = Math.round(96 + (val / 100) * (512 - 96));
+    const lengthPenalty = 1.0 + (val / 100) * 0.8;   // 1.0 -> 1.8
+    const numBeams = Math.round(2 + (val / 100) * 8); // 2..10
+    const numReturn = Math.round(1 + (val / 100) * 7); // 1..8 candidates
+    const doSample = val > 80 ? true : false; // sample only for very long
+    return {
+      max_new_tokens: maxTokens,
+      length_penalty: Number(lengthPenalty.toFixed(2)),
+      num_beams: Math.max(2, numBeams),
+      do_sample: doSample,
+      num_return_sequences: Math.max(1, numReturn)
+    };
+  }
+
+  function updateMeta() {
+    const text = articleEl.value || "";
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const sents = text.trim() ? text.trim().split(/(?<=[.!?])\s+/).length : 0;
+    wordCount.textContent = `${words} words`;
+    sentCount.textContent = `${sents} sentences`;
+    const val = parseInt(slider.value, 10);
+    const params = sliderToParams(val);
+    tokenCount.textContent = `~${params.max_new_tokens} tokens`;
+    if (rightTokenCount) rightTokenCount.textContent = `~${params.max_new_tokens} tokens`;
+    updateActivePreset(val);
+  }
+
+  function updateActivePreset(val) {
+    let activeIndex = 1;
+    for (let i = 0; i < PRESETS.length; i++) {
+      const p = PRESETS[i];
+      if (val >= p.range[0] && val <= p.range[1]) {
+        activeIndex = i;
+        break;
+      }
+    }
+    presetMarkers.forEach((el, idx) => {
+      if (idx === activeIndex) {
+        el.classList.add("active");
+        el.setAttribute("aria-selected", "true");
+      } else {
+        el.classList.remove("active");
+        el.setAttribute("aria-selected", "false");
+      }
+    });
+  }
+
+  // initialize
+  slider.addEventListener("input", updateMeta);
+  articleEl.addEventListener("input", updateMeta);
+  updateMeta();
+
+  // presets click behavior
+  presetMarkers.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const v = Number(btn.getAttribute("data-val"));
+      slider.value = v;
+      updateMeta();
+      slider.focus();
+    });
+    btn.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        btn.click();
+      }
+    });
   });
 
-  runBtn.addEventListener("click", async () => {
-    const article = articleInp.value.trim();
-    const question = questionInp.value.trim();
-    if(!article) {
-      alert("Paste an article first.");
-      return;
+  // paste handler
+  pasteBtn.addEventListener("click", async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      articleEl.value = text;
+      updateMeta();
+    } catch (e) {
+      console.warn("Clipboard read failed", e);
+      alert("Paste failed — allow clipboard permissions or paste manually.");
     }
-    status.className = "status running";
-    status.textContent = "Running…";
+  });
 
-    // small UX: disable while running
-    runBtn.disabled = true;
-    runBtn.textContent = "Running…";
+  // file upload
+  fileInput.addEventListener("change", (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { articleEl.value = r.result; updateMeta(); };
+    r.readAsText(f);
+  });
+
+  // clear
+  clearBtn.addEventListener("click", () => {
+    articleEl.value = "";
+    questionEl.value = "";
+    updateMeta();
+    resultArea.innerHTML = `<div class="placeholder">No result yet. Click <strong>Summarize</strong>.</div>`;
+    statusEl.textContent = "Idle";
+  });
+
+  // summarize click handler
+  summarizeBtn.addEventListener("click", async () => {
+    const article = articleEl.value.trim();
+    if (!article) { alert("Please paste or upload an article first."); return; }
+    const question = questionEl.value.trim() || null;
+    const sliderVal = parseInt(slider.value, 10);
+    const params = sliderToParams(sliderVal);
+
+    summarizeSpinner.classList.remove("hidden");
+    summarizeBtn.setAttribute("disabled", "true");
+    statusEl.textContent = "Working...";
 
     try {
-      // attach preset for future server-side behavior if needed
-      const payload = { article, question, preset: preset.value };
-      const out = await postJSON("/api/summarize", payload);
+      const payload = {
+        article,
+        question,
+        max_new_tokens: params.max_new_tokens,
+        num_beams: params.num_beams,
+        length_penalty: params.length_penalty,
+        do_sample: params.do_sample,
+        num_return_sequences: params.num_return_sequences,
+        K: params.num_return_sequences
+      };
 
-      // handle errors
-      if(out && out.error) {
-        resBox.innerHTML = `<div class="placeholder">Error: ${out.error}</div>`;
-      } else {
-        // pretty render top3
-        resBox.innerHTML = "";
-        const top3 = (out.generative_top3 || []).slice(0,3);
-        if(top3.length === 0) {
-          resBox.innerHTML = '<div class="placeholder">No candidates returned.</div>';
-        } else {
-          top3.forEach((c,i) => {
-            const card = el("div", {class:"candidate"});
-            const title = el("div", {class:"meta"});
-            title.appendChild(el("div", {text:`#${i+1} • combined=${(c.combined||0).toFixed(3)}  rerank=${(c.rerank_score||0).toFixed(3)}`}));
-            card.appendChild(title);
-            card.appendChild(el("h3", {text: `Candidate ${i+1}`}));
-            card.appendChild(el("pre", {text: c.candidate || ""}));
-            const controls = el("div", {class:"controls"});
-            const copyBtn = el("button", {class:"small-btn", text:"Copy"});
-            copyBtn.onclick = () => { navigator.clipboard.writeText(c.candidate||""); copyBtn.textContent = "Copied"; setTimeout(()=> copyBtn.textContent="Copy",1200); };
-            const downloadBtn = el("button", {class:"small-btn", text:"Download"});
-            downloadBtn.onclick = () => {
-              const blob = new Blob([c.candidate||""], {type:"text/plain;charset=utf-8"});
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url; a.download = `summary_${i+1}.txt`; document.body.appendChild(a); a.click(); a.remove();
-              URL.revokeObjectURL(url);
-            };
-            controls.appendChild(copyBtn);
-            controls.appendChild(downloadBtn);
-            card.appendChild(controls);
-            resBox.appendChild(card);
-          });
-        }
+      const resp = await fetch("/api/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-        // render general info like entail / fallback / qa
-        const metaWrap = el("div", {class:"card meta-wrap"});
-        const general = el("div", {}, []);
-        general.appendChild(el("div", {text: `Entail prob (top1): ${out.generative_top1_entail ?? "n/a"}`}));
-        general.appendChild(el("div", {text: `Fallback used: ${out.fallback_used ? "yes": "no"}`}));
-        if(out.fallback) {
-          general.appendChild(el("div", {text: `Fallback extractive (snippet): ${out.fallback.extractive_summary?.slice(0,180) ?? ""}`}));
-        }
-        if(out.qa_answer) {
-          general.appendChild(el("div", {text: `QA: ${out.qa_answer.answer ?? JSON.stringify(out.qa_answer)}`}));
-        }
-        resBox.appendChild(general);
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`Server error: ${resp.status} ${text}`);
       }
+
+      const data = await resp.json();
+      const top = data.generative_top3 && data.generative_top3.length ? data.generative_top3[0] : null;
+      const html = [];
+      if (top) {
+        html.push(`<div class="summary-block"><h4>Top summary</h4><p>${escapeHtml(top.candidate)}</p>`);
+        html.push(`<div class="meta muted">Entail prob (top1): ${data.generative_top1_entail ?? "N/A"} • Fallback: ${data.fallback_used ? "yes" : "no"}</div></div>`);
+      } else {
+        html.push('<div class="placeholder">No summary produced.</div>');
+      }
+      if (data.fallback && data.fallback.extractive_summary) {
+        html.push(`<div class="fallback-block"><h4>Extractive fallback</h4><p>${escapeHtml(data.fallback.extractive_summary)}</p></div>`);
+      }
+      if (data.qa_answer) {
+        html.push(`<div class="qa-block"><h4>QA</h4><pre>${escapeHtml(JSON.stringify(data.qa_answer, null, 2))}</pre></div>`);
+      }
+      resultArea.innerHTML = html.join("\n");
+      statusEl.textContent = "Done";
     } catch (err) {
-      resBox.innerHTML = `<div class="placeholder">Network or server error: ${err.message}</div>`;
+      console.error(err);
+      resultArea.innerHTML = `<div class="error">Error: ${escapeHtml(err.message)}</div>`;
+      statusEl.textContent = "Error";
     } finally {
-      status.className = "status idle";
-      status.textContent = "Idle";
-      runBtn.disabled = false;
-      runBtn.textContent = "Summarize";
+      summarizeSpinner.classList.add("hidden");
+      summarizeBtn.removeAttribute("disabled");
     }
   });
+
+  function escapeHtml(str) {
+    if (typeof str !== "string") return String(str);
+    return str.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+  }
 });

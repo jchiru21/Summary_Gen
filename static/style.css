@@ -1,55 +1,90 @@
+/* static/style.css - modern, clean UI for SummaryGen */
+
 :root{
-    --bg:#0f1724;
-    --card:#ffffff;
-    --muted:#6b7280;
-    --accent:#2563eb;
-    --glass: rgba(255,255,255,0.03);
-    --radius:12px;
-    --max-width:1100px;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
-  }
-  
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
-  body{background:linear-gradient(180deg,#071024 0%, #0b1321 60%);color:#e6eef8;display:flex;align-items:center;justify-content:center;padding:28px}
-  
-  .page{width:100%;max-width:var(--max-width);}
-  
-  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-  .brand{display:flex;align-items:center;gap:12px}
-  .logo{width:44px;height:44px;border-radius:8px;background:linear-gradient(45deg,var(--accent),#7c3aed)}
-  .brand h1{font-size:18px;margin:0;color:#fff}
-  .header-right{display:flex;align-items:center;gap:12px}
-  .preset select{padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-  
-  .container{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  .card{background:var(--glass);padding:18px;border-radius:var(--radius);box-shadow:0 6px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
-  .input-card textarea{width:100%;height:220px;padding:12px;border-radius:10px;background:transparent;border:1px dashed rgba(255,255,255,0.04);color:inherit;resize:vertical}
-  .row{display:flex;gap:12px;margin-top:12px;align-items:center}
-  .col{flex:1}
-  .actions{display:flex;gap:8px;align-items:center;justify-content:flex-end}
-  input[type=text]{width:100%;padding:10px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit}
-  
-  .btn{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);background:transparent;color:inherit;cursor:pointer}
-  .btn.primary{background:linear-gradient(90deg,var(--accent),#7c3aed);border:none;color:white;box-shadow:0 6px 18px rgba(37,99,235,0.18)}
-  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-  
-  .output-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .status{font-size:13px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02);color:var(--muted)}
-  .status.running{background:rgba(37,99,235,0.12);color:#a7c2ff}
-  .result{margin-top:12px;min-height:280px;padding:12px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent)}
-  .placeholder{color:var(--muted)}
-  .card .candidate{border-radius:8px;padding:12px;background:rgba(255,255,255,0.02);margin-bottom:12px}
-  .meta{display:flex;gap:12px;color:var(--muted);font-size:13px;margin-top:8px}
-  .candidate h3{margin:0;font-size:15px}
-  .candidate pre{white-space:pre-wrap;background:transparent;border:none;margin:6px 0;padding:0;font-family:var(--mono);font-size:13px}
-  .candidate .controls{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
-  .small-btn{padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);cursor:pointer;font-size:13px}
-  .foot{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
-  
-  /* responsive */
-  @media (max-width:900px){
-    .container{grid-template-columns:1fr}
-    .brand h1{font-size:16px}
-  }
-  
+  --bg:#0f1720; /* dark background for card contrast */
+  --card:#0b1220;
+  --muted:#94a3b8;
+  --accent:#1f6feb;
+  --accent-2:#10b981;
+  --text:#e6eef7;
+  --surface:#071023;
+  --danger:#ef4444;
+  --radius:10px;
+  --gap:12px;
+  --pad:16px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:linear-gradient(180deg,#071023 0%, #061426 100%);color:var(--text);-webkit-font-smoothing:antialiased}
+.app-shell{max-width:1100px;margin:28px auto;padding:18px;display:flex;flex-direction:column;gap:18px}
+
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px}
+.brand{font-weight:700;font-size:20px;color:var(--text);letter-spacing:0.2px}
+
+/* main layout */
+.app-main{display:grid;grid-template-columns:1fr 420px;gap:18px}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:var(--radius);box-shadow:0 6px 18px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+
+/* left panel */
+.section-title{display:block;font-size:13px;color:var(--muted);margin-bottom:8px}
+#article{width:100%;height:260px;border-radius:8px;padding:12px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--text);font-size:14px;resize:vertical}
+.row{display:flex;gap:12px;margin-top:12px}
+.col{flex:1}
+.small-label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+#question{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
+
+/* controls grid */
+.controls-grid{display:flex;gap:12px;margin-top:14px;align-items:flex-start}
+.control-block{flex:1;display:flex;flex-direction:column;gap:10px}
+
+/* slider section */
+.slider-wrap{display:flex;align-items:center;gap:10px}
+.slider-wrap .tiny{font-size:12px;color:var(--muted);width:36px;text-align:center}
+.slider{flex:1;-webkit-appearance:none;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--accent-2));outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:2px solid rgba(0,0,0,0.15)}
+.slider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,0.15)}
+
+/* preset markers under slider */
+.preset-row{display:flex;gap:8px;align-items:center}
+.preset-marker{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:6px 10px;border-radius:8px;font-size:13px;cursor:pointer}
+.preset-marker.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none;box-shadow:0 6px 20px rgba(31,111,235,0.12)}
+
+/* meta line */
+.meta-line{display:flex;gap:12px;color:var(--muted);font-size:12px}
+
+/* actions block */
+.actions .file-row{display:flex;gap:8px;align-items:center}
+.btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--text)}
+.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white;box-shadow:0 8px 24px rgba(16,185,129,0.08)}
+.upload-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);cursor:pointer;color:var(--muted)}
+.upload-btn input{display:none}
+
+/* cta row */
+.cta-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.spinner{display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);border-top-color:rgba(255,255,255,0.6);animation:spin 1s linear infinite}
+.hidden{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* right panel */
+.result-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.result-title{margin:0;font-size:18px}
+.status{font-size:12px;color:var(--muted)}
+.tokens-display{font-size:13px;color:var(--muted)}
+.result-area{min-height:320px;padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));border:1px solid rgba(255,255,255,0.02)}
+.placeholder{color:var(--muted)}
+
+/* summary/qa blocks */
+.summary-block p{margin:8px 0;font-size:15px;line-height:1.45}
+.meta.muted{font-size:12px;color:var(--muted)}
+
+/* footer */
+.app-footer{text-align:center;margin-top:8px;color:var(--muted);font-size:12px}
+
+/* responsive tweaks */
+@media (max-width:980px){
+  .app-main{grid-template-columns:1fr; padding-bottom:12px}
+  .right.card{order:2}
+  .left.card{order:1}
+}

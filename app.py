@@ -1,82 +1,18 @@
 # app.py
-from flask import Flask, render_template, request, jsonify
-from tripletgen.summarize_and_qa import summarize_and_qa, load_models
-import threading
 import os
-from pathlib import Path
-import csv
+import traceback
+import logging
+from flask import Flask, request, jsonify, render_template
+from tripletgen.summarize_and_qa import summarize_and_qa, load_models, MODELS
+import threading
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+# Optional: force dev generator quickly by uncommenting below or set env var outside.
+# os.environ["GENERATOR_MODEL"] = "sshleifer/tiny-bart"
 
-# Warm models in background for quicker first request (non-blocking)
-def _warm():
-    try:
-        # load models (will attempt HF download if needed; uses HF_TOKEN env var)
-        load_models(checkpoints_clean="checkpoints_clean", load_qa=False)
-        print("[warmup] models loaded (or attempted)")
-    except Exception as e:
-        print("Warmup load failed:", e)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
-threading.Thread(target=_warm, daemon=True).start()
-
-
-# --- Preset loader (CSV or defaults) ---
-def load_preset_config(preset_name: str, data_dir: str = "data"):
-    """
-    Reads data/<preset_name>.csv if present and returns a dict of kwargs
-    to pass to summarize_and_qa. Falls back to sensible defaults.
-    Mapping:
-      - score_threshold -> entail_threshold (float)
-      - max_candidates -> K (int, capped)
-      - max_new_tokens -> max_new_tokens (int, optional)
-      - num_beams -> num_beams (int, optional)
-    """
-    defaults = {
-        "entail_threshold": 0.8,
-        "K": 6,
-        "num_beams": 6,
-        "max_new_tokens": 96,
-    }
-    csv_path = Path(data_dir) / f"{preset_name}.csv"
-    if not csv_path.exists():
-        return defaults
-
-    try:
-        with open(csv_path, newline="") as fh:
-            reader = csv.DictReader(fh)
-            # take first non-empty row
-            row = next(reader, None)
-            if not row:
-                return defaults
-
-            cfg = defaults.copy()
-            if "score_threshold" in row and row["score_threshold"].strip():
-                try:
-                    cfg["entail_threshold"] = float(row["score_threshold"])
-                except Exception:
-                    pass
-            if "max_candidates" in row and row["max_candidates"].strip():
-                try:
-                    # cap K to avoid huge generation requests
-                    cfg["K"] = max(1, min(12, int(float(row["max_candidates"]))))
-                except Exception:
-                    pass
-            if "num_beams" in row and row["num_beams"].strip():
-                try:
-                    cfg["num_beams"] = max(1, int(float(row["num_beams"])))
-                except Exception:
-                    pass
-            if "max_new_tokens" in row and row["max_new_tokens"].strip():
-                try:
-                    cfg["max_new_tokens"] = max(8, int(float(row["max_new_tokens"])))
-                except Exception:
-                    pass
-            # ensure num_beams >= K for stable decoding behavior
-            cfg["num_beams"] = max(cfg["num_beams"], cfg["K"])
-            return cfg
-    except Exception as e:
-        print(f"[load_preset_config] failed to read {csv_path}: {e}")
-        return defaults
+app = Flask(__name__, static_folder="static", template_folder="templates")
 
 
 @app.route("/")
@@ -84,38 +20,63 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/health", methods=["GET"])
+def health():
+    mc = MODELS
+    return jsonify({"ok": True, "models_ready": getattr(mc, "ready", False), "models_loading": getattr(mc, "loading", False), "last_error": getattr(mc, "last_error", None)})
+
+
+@app.route("/debug-load", methods=["GET", "POST"])
+def debug_load():
+    """
+    Synchronously load models and return JSON with status or traceback.
+    Use this to get the real error output when a model stalls.
+    """
+    try:
+        checkpoints_clean = request.args.get("checkpoints_clean", "checkpoints_clean")
+        mc = load_models(checkpoints_clean=checkpoints_clean, load_qa=True)
+        return jsonify({"status": "ok" if getattr(mc, "ready", False) else "partial", "models_ready": getattr(mc, "ready", False), "models_loading": getattr(mc, "loading", False), "last_error": getattr(mc, "last_error", None)})
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.exception("debug-load failed")
+        return jsonify({"status": "error", "exception": str(e), "traceback": tb}), 500
+
+
 @app.route("/api/summarize", methods=["POST"])
 def api_summarize():
-    payload = request.json or {}
-    article = (payload.get("article") or "").strip()
-    question = payload.get("question")
-    preset = payload.get("preset", "balanced")
-
-    if not article:
-        return jsonify({"error": "no article provided"}), 400
-
-    # load preset config (safe defaults if csv missing or unreadable)
-    cfg = load_preset_config(preset)
-
     try:
-        # call summarize_and_qa with mapped args
-        res = summarize_and_qa(
-            article=article,
-            question=question,
-            K=cfg.get("K", 6),
-            num_beams=cfg.get("num_beams", 6),
-            max_new_tokens=cfg.get("max_new_tokens", 96),
-            entail_threshold=cfg.get("entail_threshold", 0.8),
-            checkpoints_clean="checkpoints_clean",
-        )
+        payload = request.get_json(force=True)
+        article = payload.get("article", "")
+        question = payload.get("question", None)
+        if not article:
+            return jsonify({"error": "Missing article"}), 400
+
+        max_new_tokens = min(512, max(16, int(payload.get("max_new_tokens", 512))))
+        num_beams = min(12, max(1, int(payload.get("num_beams", 6))))
+        length_penalty = min(3.0, max(0.2, float(payload.get("length_penalty", 1.2))))
+        do_sample = bool(payload.get("do_sample", False))
+        top_p = float(payload.get("top_p", 0.95))
+        temperature = float(payload.get("temperature", 0.7))
+        K = min(8, max(1, int(payload.get("K", 3))))
+
+        res = summarize_and_qa(article=article, question=question, K=K, num_beams=num_beams, max_new_tokens=max_new_tokens,
+                               entail_threshold=0.8, checkpoints_clean="checkpoints_clean", do_sample=do_sample,
+                               top_p=top_p, temperature=temperature, length_penalty=length_penalty)
         return jsonify(res)
     except Exception as e:
-        # never leak a full traceback; return concise error message
-        print("[api_summarize] error:", e)
-        return jsonify({"error": str(e)}), 500
+        logger.exception("api_summarize error")
+        return jsonify({"error": "internal server error", "detail": str(e), "traceback": traceback.format_exc()}), 500
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 7860))
-    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    # Warm models in background thread for normal startup (keeps server responsive).
+    def _warm():
+        try:
+            load_models(checkpoints_clean="checkpoints_clean", load_qa=True)
+            logger.info("Background warmup complete.")
+        except Exception:
+            logger.exception("Background warmup failed.")
+
+    t = threading.Thread(target=_warm, daemon=True)
+    t.start()
+    app.run(host="0.0.0.0", port=8080, threaded=True)
