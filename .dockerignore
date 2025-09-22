@@ -1,0 +1,35 @@
+# Python virtual envs
+venv/
+.venv/
+ENV/
+env/
+__pycache__/
+
+# Git / OS
+.git
+.DS_Store
+Thumbs.db
+
+# Python artifacts
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Data, models, checkpoints
+data/
+datasets/
+models/
+checkpoints_clean/
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.h5
+
+# IDE / local
+.vscode/
+.idea/
