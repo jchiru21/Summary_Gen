@@ -2,15 +2,21 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# system deps for torch and git-lfs if you choose to use them in image build (optional)
-RUN apt-get update && apt-get install -y git-lfs git build-essential && git lfs install && apt-get clean && rm -rf /var/lib/apt/lists/*
+# minimal system deps
+RUN apt-get update && apt-get install -y build-essential --no-install-recommends \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Install CPU-only PyTorch then other requirements (adjust if you pinned versions)
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu/ torch \
+    && pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app
 
-EXPOSE 7860
+EXPOSE 8080
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
 
-ENV FLASK_ENV=production
-CMD ["python", "app.py"]
+CMD ["sh", "-c", "exec gunicorn --workers 1 --threads 8 --timeout 300 --bind 0.0.0.0:${PORT:-8080} app:app"]
