@@ -1,7 +1,7 @@
 # Summary_Gen
 
 
-# 📦 Installation
+# Installation
 
 ### Clone the repo:
 
@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 ---
 
-# 🚀 Running the App
+# Running the App
 
 Start the Flask server:
 
@@ -40,13 +40,13 @@ python app.py
 ```
 
 Open your browser at:
-👉 [http://localhost:7860](http://localhost:7860)
+[http://localhost:7860](http://localhost:7860)
 
 Paste an article, optionally add a question, then click **Summarize + QA**.
 
 ---
 
-# 📂 Project Structure
+# Project Structure
 
 ```
 tripletgen-flask/
@@ -64,7 +64,7 @@ tripletgen-flask/
 
 ---
 
-# 🧠 Models Used
+# Models Used
 
 * Generator: `facebook/bart-large-cnn`
 * Reranker: `roberta-base` + fine-tuned checkpoints (optional)
@@ -75,7 +75,7 @@ The first run will download these models from Hugging Face and cache them locall
 
 ---
 
-# 📊 Balanced vs Conservative
+# Balanced vs Conservative
 
 * **Balanced** → keeps more summaries, slightly looser filtering.
 * **Conservative** → stricter entailment checks, fewer but safer summaries.
@@ -84,7 +84,7 @@ Both modes can be reproduced locally from the pipeline.
 
 ---
 
-# ⚠️ Checkpoints Notice
+# Checkpoints Notice
 
 This repo ignores large `.pt` files (`checkpoints_clean/`) using `.gitignore`.
 
@@ -94,14 +94,9 @@ This repo ignores large `.pt` files (`checkpoints_clean/`) using `.gitignore`.
 
 ---
 
-# 🤝 Contributing
+# Contributing
 
 PRs welcome! Open an issue to discuss major changes.
 
----
-
-# 📜 License
-
-MIT License. Free for personal and commercial use.
 
 
